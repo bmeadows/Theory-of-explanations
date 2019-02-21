@@ -14,7 +14,7 @@ Clone the repository or extract the files from the zip in the directory structur
 
 # Use
 
-The main file is 'control_loop2018.pl'.
+The main file is 'control_loop2019.pl'.
 
 Run this file in Prolog and call the top-level command 'test.', which gives an example of functionality using an example domain. To change to a different example domain, alter the name of the domain included at the top of the file.
 
