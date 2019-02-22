@@ -868,3 +868,31 @@ has_all_att_vals(Symbol, [A|B]) :-
 	arg(1, Term, Symbol),
 	arg(2, Term, A),
 	has_all_att_vals(Symbol, B).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%% 6: Test commands %%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+test :-
+	testing_output_file(FileName),
+	protocol(FileName),
+	begin_test.
+
+begin_test :-
+	member(Val1, [coarse, moderate, fine]),
+	member(Val2, [1, 2, 3, 4]),
+	member(Val3, [low, medium, high]),
+		set_axis(representation_granularity, Val1), set_axis(communication_specificity, Val2), set_axis(complexity_detail, Val3),
+		prettyprint('representation_granularity: '), prettyprintln(Val1), prettyprint('communication_specificity: '), prettyprintln(Val2), prettyprint('complexity_detail: '), prettyprintln(Val3),
+		initialise_for_reset, generate_explanation, prettyprintln('\n***************\n'),
+	fail.
+begin_test :-
+	noprotocol.
+
+:-	prettyprintln('Explanation system prototype.'),
+	prettyprintln('-----------------------------'),
+	prettyprintln('Input "test." to generate and produce all plans for a default test domain.'),
+	prettyprintln('-----------------------------'),
+	prettyprintln(''),
+	prettyprintln('Prolog system information:').
