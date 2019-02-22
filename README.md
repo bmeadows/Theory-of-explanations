@@ -16,11 +16,9 @@ Clone the repository or extract the files from the zip in the directory structur
 
 The main file is 'control_loop2019.pl'.
 
-Run this file in Prolog and call the top-level command 'test.', which gives an example of functionality using an example domain. To change to a different example domain, alter the name of the domain included at the top of the file.
+Run this file in Prolog and follow the instructions provided; calling the top-level command 'test.' demonstrates the possible plans generated using an example domain, while 'control_loop.' allow full standard functionality.
 
-To use your own custom domains compatible with this system, or for full functionality, replace the clauses
+To use your own custom domains compatible with this system, replace the clauses
 'read_ASP_program_and_translate_to_predicates'
 and
-'read_ASP_output_and_translate_to_predicates'
-and then call 'control_loop.' from Prolog.
-
+'read_ASP_output_and_translate_to_predicates'.
