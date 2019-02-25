@@ -6,7 +6,7 @@ To support this premise, this repository contains code for a system for agent ex
 
 # Requirements
 
-Runs on SWI-Prolog version 7.4.0 or greater in a Windows OS. Not tested with other operating systems.
+Runs on SWI-Prolog version 7.5.8 or greater in a Windows OS. Not tested with other operating systems.
 
 # Installation
 
