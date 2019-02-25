@@ -1,6 +1,8 @@
 
 :- discontiguous asp/1.
 
+testing_output_file('explanation_test1_output_fine.txt').
+
 % action_syntax(ActionName, PastTense, [List]) gives syntactic information for each action, to fit into the grammar rule
 % => "[actor] [verb past tense] [object1] {to [object2]} {by [object3]} {with [object4]} {and [object5]}"
 % e.g. action_syntax(serve, served, [actor, object1, object2])
@@ -38,6 +40,7 @@
 
 
 % Initial syntactic information / grammar rules:
+%
 action_syntax(move, 'moved', [actor, object2]).
 action_syntax(serve, 'served', [actor, object1, object2]).
 action_syntax(putdown, 'put down', [actor, object1]).
@@ -56,7 +59,7 @@ action_syntax(pickup_retract, 'raised', [actor, object1]).
 % Comment out for third-person reporting.
 use_pov(rob1).
 
-/*
+/*    Domain description:
 study1, office1, workshop1, kitchen1 each comprised of 10x10 (100) cells. s_5_2 is the cell in the 5th column of the 2nd row in the study1, etc.
 Objects: manual1, book1, book2.
 Entities: rob1, p1, p2.
@@ -312,21 +315,3 @@ asp(holds(loc_fine(rob1, o_9_5), 37)). asp(holds(loc_fine(manual1, s_8_8), 37)).
 asp(holds(loc_fine(rob1, o_9_5), 38)). asp(holds(loc_fine(manual1, s_8_8), 38)). asp(holds(loc_fine(book2, o_9_5), 38)).
 asp(holds(loc_fine(rob1, o_9_5), 39)). asp(holds(loc_fine(manual1, s_8_8), 39)). asp(holds(loc_fine(book2, o_9_5), 39)).
 asp(holds(loc_fine(rob1, o_9_5), 40)). asp(holds(loc_fine(manual1, s_8_8), 40)). asp(holds(loc_fine(book2, o_9_5), 40)).
-%
-
-
-test :-
-	protocol('explanation_test1_output_fine.txt'),
-	begin_test.
-
-begin_test :-
-	member(Val1, [coarse, moderate, fine]),
-	member(Val2, [1, 2, 3, 4]),
-	member(Val3, [low, medium, high]),
-		set_axis(representation_granularity, Val1), set_axis(communication_specificity, Val2), set_axis(complexity_detail, Val3),
-		prettyprint('representation_granularity: '), prettyprintln(Val1), prettyprint('communication_specificity: '), prettyprintln(Val2), prettyprint('complexity_detail: '), prettyprintln(Val3),
-		initialise_for_reset, generate_explanation, prettyprintln('\n***************\n'),
-	fail.
-begin_test :-
-	noprotocol.
-

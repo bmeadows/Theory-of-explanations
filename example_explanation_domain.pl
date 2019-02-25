@@ -1,8 +1,10 @@
 
 :- discontiguous asp/1.
 
+testing_output_file('explanation_test1_output.txt').
+
 % action_syntax(ActionName, PastTense, [List]) gives syntactic information for each action, to fit into the grammar rule
-% => "[actor] [verb past tense] [object1] {to [object2]} {by [object3]} {with [object4]} {and [object5]}"
+%    "[actor] [verb past tense] [object1] {to [object2]} {by [object3]} {with [object4]} {and [object5]}"
 % e.g. action_syntax(serve, served, [actor, object1, object2])
 % e.g. action_syntax(move, moved, [actor, object2])
 % e.g. action_syntax(sweep, swept, [actor, object1, object4])
@@ -38,6 +40,7 @@
 
 
 % Initial syntactic information / grammar rules:
+%
 action_syntax(move, 'moved', [actor, object2]).
 action_syntax(serve, 'served', [actor, object1, object2]).
 action_syntax(putdown, 'put down', [actor, object1]).
@@ -316,20 +319,3 @@ asp(holds(arm_position(rob1, retracted), 9)).
 asp(holds(arm_position(rob1, retracted), 10)).
 asp(holds(arm_position(rob1, extended), 11)).
 asp(holds(arm_position(rob1, retracted), 12)).
-
-
-test :-
-	protocol('explanation_test1_output.txt'),
-	begin_test.
-
-begin_test :-
-	member(Val1, [coarse, moderate, fine]),
-	member(Val2, [1, 2, 3, 4]),
-	member(Val3, [low, medium, high]),
-		set_axis(representation_granularity, Val1), set_axis(communication_specificity, Val2), set_axis(complexity_detail, Val3),
-		prettyprint('representation_granularity: '), prettyprintln(Val1), prettyprint('communication_specificity: '), prettyprintln(Val2), prettyprint('complexity_detail: '), prettyprintln(Val3),
-		initialise_for_reset, generate_explanation, prettyprintln('\n***************\n'),
-	fail.
-begin_test :-
-	noprotocol.
-
