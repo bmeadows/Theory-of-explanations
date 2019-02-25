@@ -14,12 +14,13 @@
 
 :- dynamic inPlanMode/1, learningMode/1, last_transitions_failed/1, currently_believed_to_hold/1, currentTime/1, currentTime_unaltered/1, currentGoal/1, obs/3, hpd/2, 
 answer_set_goal/1, expected_effects/3, user_alerted_interruption/0, representation_granularity/1, communication_specificity/1, complexity_detail/1, reported/1, join_word/1,
-use_pov/1, self_described/0.
+use_pov/1, self_described/0, formal_tone/1.
 
 :- discontiguous describe_outcomes/2.
 
 %inPlanMode(true).
 os(windows).
+formal_tone(false).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -28,8 +29,11 @@ os(windows).
 
 control_loop :-
 	read_ASP_program_and_output_to_predicates,
-	get_user_explanation_request -> continue_to_explanation ; prettyprintln('No explanation requested.').
+	(get_user_explanation_request -> continue_to_explanation ; leave_loop).
 	
+leave_loop :-
+	prettyprintln('Request not understood or no explanation requested. Leaving control loop.').
+
 read_ASP_program_and_output_to_predicates :-
 	read_ASP_program_and_translate_to_predicates,
 	read_ASP_output_and_translate_to_predicates.
@@ -41,9 +45,7 @@ continue_to_explanation :-
 
 solicit_user_response :- 
 	get_text_feedback(Input),
-	process_user_input_text(Input),
-	!,
-	continue_to_explanation.
+	(process_user_input_text(Input) -> continue_to_explanation ; leave_loop).
 solicit_user_response.
 
 get_user_explanation_request :-
@@ -83,6 +85,7 @@ partition_input(InputStringX, Preamble, Tell, Remainder) :-
 	split_string_into_three_at_first_instance_of_some_word(InputString,
 			["explain", "analyse", "analyze", "explanation", "describe", "tell", "repeat"], Preamble, Tell, Remainder),
 	!.
+
 split_string_into_three_at_first_instance_of_some_word(Input, WordList, Output1, Output2, Output3) :-
 	member(Token, WordList),
 	sub_string(Input, CharactersBefore, Length, CharactersAfter, Token), % Fixes place of a target word in the string
@@ -105,10 +108,13 @@ read_ASP_output_and_translate_to_predicates :-
 
 change_specificity_from_cues(Text) :-
 	establish_cues(Text, AxisOrGeneral, Direction), % decrease_specificity/increase_specificity/standard_specificity
-	prettyprint('Axis of specificity indicated by user input: '),
-	prettyprintln(AxisOrGeneral),
-	prettyprint('Direction of specificity indicated by user input: '),
-	prettyprintln(Direction),
+	formal_tone(T),
+	(T=true -> prettyprint('Axis of specificity indicated by user input: ') ; prettyprint('I will change the axis of ')),
+	prettyprint(AxisOrGeneral),
+	prettyprintln('.'),
+	(T=true -> prettyprint('Direction of specificity indicated by user input: ') ; prettyprint('I will change this axis in the direction: ')),
+	prettyprint(Direction),
+	prettyprintln('.'),
 	change_axes_based_on_cues(AxisOrGeneral, Direction).
 
 change_axes_based_on_cues(_AxisOrGeneral, standard_specificity) :-
@@ -193,7 +199,8 @@ preamble_specificity_word(Preamble, FollowWordNetLinks, Ret, Spec) :-
 preamble_direction_word(Preamble, 1) :-
 	contains_a_word(Preamble, true, ["much", "more", "increase", "increased", "considerable", "high", "maximum", "maximal"]),
 	contains_a_word(Preamble, true, ["little", "reduce", "reduced", " less ", " low ", "minimum", "minimal"]),
-	prettyprintln('(Increase or decrease in specificity ambiguous; defaulting)'),
+	formal_tone(T),
+	(T=true -> prettyprintln('(Increase or decrease in specificity ambiguous; defaulting)') ; prettyprintln('I am not sure if specificity should increase or decrease... Defaulting to increase.')),
 	!.
 % Negative words found: Signal magnitude decrease
 preamble_direction_word(Preamble, -1) :-
@@ -927,7 +934,7 @@ read_domain_file(Other) :-
 	prettyprint(Other),
 	prettyprintln(' loaded.').
 read_domain_file(_) :-
-	prettyprint('ERROR: Domain file does not exist!'),
+	prettyprintln('ERROR: Domain file does not exist!\n'),
 	fail.
 
 give_recommendations :-
@@ -935,7 +942,7 @@ give_recommendations :-
 	prettyprintln('Four important commands are:'),
 	prettyprintln('  "test.", which generates and presents all explanations for the domain scenario;'),
 	prettyprintln('  "control_loop.", which allows the user to interact with the simulated agent by asking it for explanations in different ways;'),
-	prettyprintln('  "reset.", which resets the domain file in preparation to load another;'),
+	prettyprintln('  "reset.", which unloads the domain file in preparation to load another;'),
 	prettyprintln('  "tone.", which toggles the explanatory tone from formal to informal or vice versa.'),
 	prettyprintln('\n-----------------------------\n').
 
@@ -948,5 +955,18 @@ reset_system :-
 	prettyprintln(File),
 	prettyprintln('\n-----------------------------\n'),
 	giveUserPrompts.
+
+tone :-
+	formal_tone(false),
+	retractall(formal_tone(false)),
+	assert(formal_tone(true)),
+	prettyprintln('Set tone to formal.'),
+	!.
+tone :-
+	formal_tone(true),
+	retractall(formal_tone(true)),
+	assert(formal_tone(false)),
+	prettyprintln('Set tone to informal.'),
+	!.
 
 :- initialization(beginStartupPrompts, program). % Only run after Prolog has finished loading, e.g., following any welcome message.
