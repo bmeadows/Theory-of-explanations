@@ -8,7 +8,7 @@
 
 % Select one domain
 
-:- [example_explanation_domain].
+%:- [example_explanation_domain].
 %:- [example_explanation_domain_finer].
 %:- [example_explanation_domain_cooking].
 
@@ -890,9 +890,63 @@ begin_test :-
 begin_test :-
 	noprotocol.
 
-:-	prettyprintln('Explanation system prototype.'),
+beginStartupPrompts :-	
+	prettyprintln('\nExplanation system prototype.'),
+	giveUserPrompts.
+
+giveUserPrompts :-
 	prettyprintln('-----------------------------'),
-	prettyprintln('Input "test." to generate and produce all plans for a default test domain.'),
-	prettyprintln('-----------------------------'),
-	prettyprintln(''),
-	prettyprintln('Prolog system information:').
+	prettyprintln('Input "1." to initialise default test domain #1, Robot Assistant.'),
+	prettyprintln('Input "2." to initialise default test domain #2, Robot Assistant (fine quantization).'),
+	prettyprintln('Input "3." to initialise default test domain #3, Robot Baker.'),
+	prettyprintln('Otherwise, input the file name of a custom domain to ...'),
+	read(TextInput),
+	(read_domain_file(TextInput) -> give_recommendations ; giveUserPrompts).
+		
+read_domain_file(1) :-
+	retractall(domain_file_saved(_)),
+	assert(domain_file_saved(example_explanation_domain)),
+	consult('example_explanation_domain.pl'),
+	prettyprintln('...example_explanation_domain loaded.').
+read_domain_file(2) :-
+	retractall(domain_file_saved(_)),
+	assert(domain_file_saved(example_explanation_domain_finer)),
+	consult('example_explanation_domain_finer.pl'),
+	prettyprintln('...example_explanation_domain_finer loaded.').
+read_domain_file(3) :-
+	retractall(domain_file_saved(_)),
+	assert(domain_file_saved(example_explanation_domain_cooking)),
+	consult('example_explanation_domain_cooking.pl'),
+	prettyprintln('...example_explanation_domain_cooking loaded.').
+read_domain_file(Other) :-
+	retractall(domain_file_saved(_)),
+	exists_file(Other),
+	assert(domain_file_saved(Other)),
+	consult(Other),
+	prettyprint('...custom domain '),
+	prettyprint(Other),
+	prettyprintln(' loaded.').
+read_domain_file(_) :-
+	prettyprint('ERROR: Domain file does not exist!'),
+	fail.
+
+give_recommendations :-
+	prettyprintln('\n-----------------------------\n'),
+	prettyprintln('Four important commands are:'),
+	prettyprintln('  "test.", which generates and presents all explanations for the domain scenario;'),
+	prettyprintln('  "control_loop.", which allows the user to interact with the simulated agent by asking it for explanations in different ways;'),
+	prettyprintln('  "reset.", which resets the domain file in preparation to load another;'),
+	prettyprintln('  "tone.", which toggles the explanatory tone from formal to informal or vice versa.'),
+	prettyprintln('\n-----------------------------\n').
+
+reset :- reset_system.
+reset_system :-
+	domain_file_saved(File),
+	unload_file(File),
+	retractall(domain_file_saved(File)),
+	prettyprint('System has been reset; unloaded domain file '),
+	prettyprintln(File),
+	prettyprintln('\n-----------------------------\n'),
+	giveUserPrompts.
+
+:- initialization(beginStartupPrompts, program). % Only run after Prolog has finished loading, e.g., following any welcome message.
