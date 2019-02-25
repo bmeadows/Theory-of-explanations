@@ -10,7 +10,7 @@ Runs on SWI-Prolog version 7.5.8 or greater in a Windows OS. Not tested with oth
 
 # Installation
 
-Clone the repository or extract the files from the zip in the directory structure given.
+Clone the repository or extract the files from the zip archive in the directory structure given.
 
 # Use
 
