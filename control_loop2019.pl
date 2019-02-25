@@ -713,6 +713,12 @@ count_refined_fluent_outcomes(T, Length) :-
 % % % % % % % % % % % % % % % % % %
 % % % % % % % % % % % % % % % % % %
 
+% First object printed is the agent speaking
+% TODO - make more robust to future changes
+print_obj(DomainSymbol) :-
+	use_pov(none),
+	!,
+	print_obj_method(DomainSymbol).
 print_obj(DomainSymbol) :-
 	use_pov(DomainSymbol),
 	not(self_described),
@@ -939,11 +945,12 @@ read_domain_file(_) :-
 
 give_recommendations :-
 	prettyprintln('\n-----------------------------\n'),
-	prettyprintln('Four important commands are:'),
+	prettyprintln('Some important commands are:'),
 	prettyprintln('  "test.", which generates and presents all explanations for the domain scenario;'),
 	prettyprintln('  "control_loop.", which allows the user to interact with the simulated agent by asking it for explanations in different ways;'),
 	prettyprintln('  "reset.", which unloads the domain file in preparation to load another;'),
-	prettyprintln('  "tone.", which toggles the explanatory tone from formal to informal or vice versa.'),
+	prettyprintln('  "tone.", which toggles the explanatory tone from formal to informal or vice versa;'),
+	prettyprintln('  "pov(X).", which sets the explanation\'s point of view to X\'s, or set to \'none\' for third person. Value defaults to rob1 for example domains.'),
 	prettyprintln('\n-----------------------------\n').
 
 reset :- reset_system.
@@ -969,4 +976,13 @@ tone :-
 	prettyprintln('Set tone to informal.'),
 	!.
 
+pov(X) :-
+	retractall(use_pov(_)),
+	asserta(use_pov(X)),
+	prettyprint('Set point of view to '),
+	prettyprint(X),
+	prettyprintln('.'),
+	!.
+
 :- initialization(beginStartupPrompts, program). % Only run after Prolog has finished loading, e.g., following any welcome message.
+

@@ -53,9 +53,9 @@ action_syntax(putdown_extend, 'put down', [actor, object4, object1, object3]).
 action_syntax(putdown_retract, 'raised', [actor, object1]).
 action_syntax(pickup_extend, 'picked up', [actor, object4, object1, object3]).
 action_syntax(pickup_retract, 'raised', [actor, object1]).
-% Comment out for third-person reporting.
-use_pov(rob1).
 
+% Default
+use_pov(rob1).
 
 /*
 study1, office1, workshop1, kitchen1 each comprised of four cells.

@@ -34,7 +34,8 @@ action_syntax(close_door, 'closed', [actor, object1]).
 action_syntax(wait, 'waited for minutes equal', [actor, object2]).
 action_syntax(approach, 'approached', [actor, object1]).
 action_syntax(halt, 'halted at', [actor, object1]).
-% Comment out for third-person reporting.
+
+% Default
 use_pov(rob1).
 
 /*

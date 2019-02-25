@@ -56,7 +56,8 @@ action_syntax(putdown_retract, 'raised', [actor, object1]).
 action_syntax(pickup_extend, 'reached for', [actor, object4, object1, object3]).
 action_syntax(pickup_grasp, 'grasped', [actor, object4, object1, object3]).
 action_syntax(pickup_retract, 'raised', [actor, object1]).
-% Comment out for third-person reporting.
+
+% Default
 use_pov(rob1).
 
 /*    Domain description:
