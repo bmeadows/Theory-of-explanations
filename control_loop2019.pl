@@ -2,25 +2,19 @@
 %%%%%%%%%%%%%%% Section 1: Parameters %%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Includes
+% Consult formatting and WordNet libraries
 :- [pretty_printer].
-:- [resources]. % For debugging purposes, can be removed to reduce startup lag associated with WordNet
+:- [resources].
 
-% Select one domain
-
-%:- [example_explanation_domain].
-%:- [example_explanation_domain_finer].
-%:- [example_explanation_domain_cooking].
-
-:- dynamic inPlanMode/1, learningMode/1, last_transitions_failed/1, currently_believed_to_hold/1, currentTime/1, currentTime_unaltered/1, currentGoal/1, obs/3, hpd/2, 
-answer_set_goal/1, expected_effects/3, user_alerted_interruption/0, representation_granularity/1, communication_specificity/1, complexity_detail/1, reported/1, join_word/1,
-use_pov/1, self_described/0, formal_tone/1.
+:- dynamic learningMode/1, last_transitions_failed/1, currently_believed_to_hold/1, currentTime/1, 
+	currentTime_unaltered/1, currentGoal/1, obs/3, hpd/2, answer_set_goal/1, expected_effects/3, 
+	user_alerted_interruption/0, representation_granularity/1, communication_specificity/1, 
+	complexity_detail/1, reported/1, join_word/1, use_pov/1, self_described/0, use_formal_tone/1, 
+	test_time_start/1.
 
 :- discontiguous describe_outcomes/2.
 
-%inPlanMode(true).
-os(windows).
-formal_tone(false).
+use_formal_tone(false).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -34,6 +28,7 @@ control_loop :-
 leave_loop :-
 	prettyprintln('Request not understood or no explanation requested. Leaving control loop.').
 
+% Overwrite to translate a custom domain
 read_ASP_program_and_output_to_predicates :-
 	read_ASP_program_and_translate_to_predicates,
 	read_ASP_output_and_translate_to_predicates.
@@ -73,7 +68,7 @@ initialise_for_reset :-
 
 process_user_input_text(InputString) :-
 	initialise_for_reset,
-	% As long as a synonym for 'explain', appears, take the part before that and extract any specificity cue
+	% As long as a synonym for 'explain' appears, take the part before that and extract any specificity cue
 	partition_input(InputString, Preamble, Tell, _Remainder),
 	prettyprint('=> "'),
 	prettyprint(Tell),
@@ -81,12 +76,13 @@ process_user_input_text(InputString) :-
 	change_specificity_from_cues(Preamble).
 	
 partition_input(InputStringX, Preamble, Tell, Remainder) :-
-	string_lower(InputStringX, InputString), % Set all characters to lowercase
-	split_string_into_three_at_first_instance_of_some_word(InputString,
-			["explain", "analyse", "analyze", "explanation", "describe", "tell", "repeat"], Preamble, Tell, Remainder),
+	string_lower(InputStringX, InputString), % Set all characters to lower case
+	split_string_into_three_at_first_instance_of_a_word(InputString,
+			["explain", "analyse", "analyze", "explanation", "describe", "tell", "repeat"],
+			Preamble, Tell, Remainder),
 	!.
 
-split_string_into_three_at_first_instance_of_some_word(Input, WordList, Output1, Output2, Output3) :-
+split_string_into_three_at_first_instance_of_a_word(Input, WordList, Output1, Output2, Output3) :-
 	member(Token, WordList),
 	sub_string(Input, CharactersBefore, Length, CharactersAfter, Token), % Fixes place of a target word in the string
 	sub_string(Input, 0, CharactersBefore, _, Output1),
@@ -107,8 +103,8 @@ read_ASP_output_and_translate_to_predicates :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 change_specificity_from_cues(Text) :-
-	establish_cues(Text, AxisOrGeneral, Direction), % decrease_specificity/increase_specificity/standard_specificity
-	formal_tone(T),
+	establish_cues(Text, AxisOrGeneral, Direction), % Direction in {decrease_specificity, increase_specificity, standard_specificity}
+	use_formal_tone(T),
 	(T=true -> prettyprint('Axis of specificity indicated by user input: ') ; prettyprint('I will change the axis of ')),
 	prettyprint(AxisOrGeneral),
 	prettyprintln('.'),
@@ -199,7 +195,7 @@ preamble_specificity_word(Preamble, FollowWordNetLinks, Ret, Spec) :-
 preamble_direction_word(Preamble, 1) :-
 	contains_a_word(Preamble, true, ["much", "more", "increase", "increased", "considerable", "high", "maximum", "maximal"]),
 	contains_a_word(Preamble, true, ["little", "reduce", "reduced", " less ", " low ", "minimum", "minimal"]),
-	formal_tone(T),
+	use_formal_tone(T),
 	(T=true -> prettyprintln('(Increase or decrease in specificity ambiguous; defaulting)') ; prettyprintln('I am not sure if specificity should increase or decrease... Defaulting to increase.')),
 	!.
 % Negative words found: Signal magnitude decrease
@@ -387,27 +383,30 @@ printActionNumberSpecific(C, F) :-
 
 report_all_actions :-
 	representation_granularity(fine),
-	asp(fine(Action)),
-	not(reported(Action)),
 	!,
-	Action = hpd(ActualAction,T),
-	not(( asp(fine(hpd(A2,T2))), T2 < T, not(reported(hpd(A2,T2))) )),
-	describe_action(fine(ActualAction), T),
-	assert(reported(Action)),
-	!,
-	report_all_actions.
+	findall([ActualAct,T], ( asp(fine(hpd(ActualAct,T))), not(reported(hpd(ActualAct,T))) ), FineActsList),
+	sort(FineActsList, List),
+	recursive_describe_action_fine(List).
 report_all_actions :-
 	(representation_granularity(coarse) ; representation_granularity(moderate)),
 	asp(coarse(Action)),
 	not(reported(Action)),
 	!,
-	Action = hpd(ActualAction,T),
+	Action = hpd(ActualAct,T),
 	not(( asp(coarse(hpd(A2,T2))), T2 < T, not(reported(hpd(A2,T2))) )),
-	describe_action(coarse(ActualAction), T),
+	describe_action(coarse(ActualAct), T),
 	assert(reported(Action)),
 	!,
 	report_all_actions.
 report_all_actions.
+
+recursive_describe_action_fine([]) :- !.
+recursive_describe_action_fine([A|B]) :-
+	A = [ActualAct,T],
+	describe_action(fine(ActualAct), T),
+	assert(reported(hpd(ActualAct,T))),
+	!,
+	recursive_describe_action_fine(B).
 
 report_first_action :-
 	representation_granularity(fine),
@@ -419,7 +418,7 @@ report_first_action :-
 	assert(reported(Action)),
 	!.
 report_first_action :-
-	% (representation_granularity(coarse) ; representation_granularity(moderate)),
+	% Implied: (representation_granularity(coarse) ; representation_granularity(moderate)),
 	asp(coarse(Action)),
 	Action = hpd(ActualAction,T),
 	not(( asp(coarse(hpd(_,T2))), T2 < T )),
@@ -437,7 +436,7 @@ report_last_action :-
 	assert(reported(Action)),
 	!.
 report_last_action :-
-	% (representation_granularity(coarse) ; representation_granularity(moderate)),
+	% Implied: (representation_granularity(coarse) ; representation_granularity(moderate)),
 	asp(coarse(Action)),
 	Action = hpd(ActualAction,T),
 	not(( asp(coarse(hpd(_,T2))), T2 > T )),
@@ -467,22 +466,19 @@ change_join_word('After this, ') :-
 describe_action_with(Action, T, Prefix) :-
 	prettyprint(Prefix),
 	(Action = coarse(ActionTerm) ; Action = fine(ActionTerm)),
-	employ_grammar_rule(ActionTerm),
+	use_grammar_rule(ActionTerm),
 	describe_outcomes(Action, T),
 	prettyprintln('').
 
-employ_grammar_rule(ActionTerm) :-
-	% "[actor] [verb past tense] [object1] {to [object2]} {by [object3]} {with [object4]} {and [object5]}"
+use_grammar_rule(ActionTerm) :-
+	% Sentence template: "[actor] [verb past tense] [object1] {to [object2]} {by [object3]} {with [object4]} {and [object5]}"
 	functor(ActionTerm, ActionName, _Arity),
 	action_syntax(ActionName, VerbPastTense, TypeList),
-	% nth1(Index, TypeList, TargetElement)
 	getCorrectArg(actor, ActionTerm, TypeList, ActorValue),
-	print_obj(ActorValue),
-	% '[actor]'
+	print_obj(ActorValue), % '[actor]'
 	prettyprint(' '),
-	prettyprint(VerbPastTense),
-	% '[verb past tense]'
-	(getCorrectArg(object1, ActionTerm, TypeList, O1Value) -> prettyprint(' '), print_obj(O1Value) ; true), % '[object1]'
+	prettyprint(VerbPastTense), % '[verb past tense]'
+	(getCorrectArg(object1, ActionTerm, TypeList, O1Value) -> (prettyprint(' '), print_obj(O1Value)) ; true), % '[object1]'
 	(getCorrectArg(object2, ActionTerm, TypeList, O2Value) -> (prettyprint(' to '), print_obj(O2Value)) ; true), % 'to [object2]'
 	(getCorrectArg(object3, ActionTerm, TypeList, O3Value) -> (prettyprint(' by '), print_obj(O3Value)) ; true), % 'by [object3]'
 	(getCorrectArg(object4, ActionTerm, TypeList, O4Value) -> (prettyprint(' with '), print_obj(O4Value)) ; true), % 'with [object4]'
@@ -573,14 +569,15 @@ get_nonrefined_end_time(Action, T, T2) :-
 	
 print_nonrefined_fluent_outcomes(T, TFinal) :-
 	T2 is TFinal +1,
-	% Find all coarse fluents whose truth value reversed between T and T2.
-	% (for now, find all fluents, regardless of representation_granularity - TODO, extend)
+	% Find all coarse fluents whose truth value reversed between timesteps T and T2.
+	% (for now, find all fluents, regardless of representation_granularity - TODO, extend...
+	%  note no assumption domain distinguishes between specifically coarse and fine fluents in machine-readable way)
 	% Recursively print this list with '; ' appended, finishing in '. '
 	findall(not(X), (asp(holds(X, T)), not_holds_either_way(X, T2)), ChangeList1),
 	findall(X, (asp(holds(X, T2)), not_holds_either_way(X, T)), ChangeList2),
 	append(ChangeList1, ChangeList2, ChangeList),
 	print_recursive_changelist(ChangeList).
-	
+
 count_nonrefined_fluent_outcomes(T, TFinal, Length) :-
 	T2 is TFinal +1,
 	findall(not(X), (asp(holds(X, T)), not_holds_either_way(X, T2)), ChangeList1),
@@ -619,7 +616,7 @@ describe_outcomes(fine(_Action), FineTime) :-
 	last(FineActionList, FineTime),
 	!,
 	prettyprint('The result was that overall: '),
-	employ_grammar_rule(CoarseAction),
+	use_grammar_rule(CoarseAction),
 	describe_outcomes_coarse_continue('This higher level action ', CoarseActionTime, FineTime).
 
 % Descriptor function
@@ -671,7 +668,7 @@ describe_fine_extensive(FineTime) :-
 	last(FineActionList, FineTime),
 	!,
 	prettyprint('The result was that overall: '),
-	employ_grammar_rule(CoarseAction),
+	use_grammar_rule(CoarseAction),
 	prettyprint('This higher level action resulted in total effects: '),
 	print_nonrefined_fluent_outcomes(CoarseActionTime, FineTime), % Start, End
 	describe_outcomes_coarse_continue('Then this higher level action ', CoarseActionTime, FineTime).
@@ -699,6 +696,8 @@ describe_outcomes_fine_continue(Prefix, _Time) :-
 print_refined_fluent_outcomes(T) :-
 	T2 is T +1,
 	% Find all fine fluents whose truth value reversed between T and T2.
+	% (note this may match coarse fluents in the case where the fine action ends a coarse action... 
+	%  note also no assumption domain distinguishes between specifically coarse and fine fluents in machine-readable way)
 	findall(not(X), (asp(holds(X, T)), not_holds_either_way(X, T2)), ChangeList1),
 	findall(X, (asp(holds(X, T2)), not_holds_either_way(X, T)), ChangeList2),
 	append(ChangeList1, ChangeList2, ChangeList),
@@ -713,8 +712,8 @@ count_refined_fluent_outcomes(T, Length) :-
 % % % % % % % % % % % % % % % % % %
 % % % % % % % % % % % % % % % % % %
 
-% First object printed is the agent speaking
-% TODO - make more robust to future changes
+% For these explanations, can assume the first object to be printed is the agent speaking
+% TODO - make this more robust for when this will not be the case
 print_obj(DomainSymbol) :-
 	use_pov(none),
 	!,
@@ -733,15 +732,17 @@ print_obj(DomainSymbol) :-
 	!,
 	prettyprint('I').
 
-print_obj(DomainSymbol) :- print_obj_method(DomainSymbol).
+print_obj(DomainSymbol) :-
+	print_obj_method(DomainSymbol).
 
+% Specificity 1...	
 print_obj_method(DomainSymbol) :-
 	communication_specificity(1),
 	!,
 	prettyprint('a '),
 	less_specific_sort(DomainSymbol, Sort),
 	prettyprint(Sort).
-%
+% Specificity 2...
 print_obj_method(DomainSymbol) :-
 	communication_specificity(2),
 	complexity_detail(low),
@@ -765,7 +766,7 @@ print_obj_method(DomainSymbol) :-
 	specific_sort(DomainSymbol, Sort),
 	print_all_attributes(DomainSymbol),
 	prettyprint(Sort).
-%
+% Specificity 3...
 print_obj_method(DomainSymbol) :-
 	communication_specificity(3),
 	(complexity_detail(low) ; complexity_detail(medium)),
@@ -780,10 +781,9 @@ print_obj_method(DomainSymbol) :-
 	!,
 	prettyprint('the'),
 	specific_sort(DomainSymbol, Sort),
-	print_all_attributes(Sort),
+	print_all_attributes(DomainSymbol),
 	prettyprint(Sort).
-%
-
+%% Specificity 4...
 print_obj_method(DomainSymbol) :-
 	communication_specificity(4),
 	complexity_detail(low),
@@ -805,13 +805,11 @@ print_obj_method(DomainSymbol) :-
 	!,
 	prettyprint('the'),
 	specific_sort(DomainSymbol, Sort),
-	print_determining_attributes(Sort, DomainSymbol),
+	print_all_attributes(DomainSymbol),
 	prettyprint(Sort),
 	prettyprint(' "'),
 	prettyprint(DomainSymbol),
 	prettyprint('"').
-
-%	
 	
 specific_sort(DomainSymbol, Sort) :-
 	asp(sorts(Sort, List)),
@@ -834,7 +832,7 @@ domain_symbol_att_values(DomainSymbol, ReturnList) :-
 				(   asp(predicate(Term)), functor(Term, _Pred, 2), arg(1, Term, DomainSymbol), arg(2, Term, Val)   ),
 				ReturnList).
 				
-% Print all the entity's/object's attributes.
+% Print all of the entity or object's attributes.
 print_all_attributes(DomainSymbol) :-
 	domain_symbol_att_values(DomainSymbol, ValList),
 	print_each_element(ValList, " ").
@@ -848,12 +846,12 @@ print_each_element([Val|Tail], PrefixSpace) :-
 
 % Print a set of attributes that are sufficient for uniqueness.
 % Check for uniqueness currently, and if not, add another attribute.
-% Catch case where it's impossible to genuinely get uniqueness.
+% Catch case where it is impossible to genuinely get uniqueness.
 print_determining_attributes(Sort, DomainSymbol) :-
 	domain_symbol_att_values(DomainSymbol, ValList),
 	CurrentReportableAttList = [],
 	continue_until_uniqueness(Sort, DomainSymbol, CurrentReportableAttList, ValList).
-	
+
 continue_until_uniqueness(_Sort, _DomainSymbol, CurrentReportableAttList, []) :-
 	!,
 	print_each_element(CurrentReportableAttList, " ").
@@ -866,32 +864,35 @@ continue_until_uniqueness(Sort, DomainSymbol, CurrentReportableAttList, [Val|Val
 	!,
 	continue_until_uniqueness(Sort, DomainSymbol, NewAttList, ValTail).
 
+% The highest computational cost of explanation occurs here, due to looped multiple comparisons.
+% It only occurs when the system has to find a minimal set of descriptors necessary to uniquely identify an object, as opposed to e.g. finding no or all descriptors.
+% It is only costly when there is a large number of objects with the same sort, e.g., 4x10x10=400 different room cells for sample domain #2, so that uniqueness must be checked for a very large number of times.
+% If this ever becomes a problem, note that it can be compensated for by arranging the sort hierarchy so that fewer objects appear in the same subsort.
+% e.g., for sample domain #2, replace the static attribute indicating column with a cell subsort that groups all cells in the column.
 uniquely_identified(Sort, DomainSymbol, CurrentReportableAttList) :-
+	asp(sorts(Sort, List)),
 	not((
-		asp(sorts(Sort, List)),
 		member(OtherSymbol, List),
-		has_all_att_vals(OtherSymbol, CurrentReportableAttList),
-		OtherSymbol \= DomainSymbol
+		OtherSymbol \= DomainSymbol,
+		has_all_att_vals(OtherSymbol, CurrentReportableAttList)
 	)).
 
-has_all_att_vals(_Symbol, []).
-has_all_att_vals(Symbol, [A|B]) :- 
+% When determining uniqueness, this is called multiple times for each object of the same sort.
+has_all_att_vals(_OtherSymbol, []).
+has_all_att_vals(OtherSymbol, [A|B]) :- 
 	asp(predicate(Term)),
 	functor(Term, _Pred, 2),
-	arg(1, Term, Symbol),
+	arg(1, Term, OtherSymbol),
 	arg(2, Term, A),
-	has_all_att_vals(Symbol, B).
+	has_all_att_vals(OtherSymbol, B).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%% 6: Test commands %%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-test :-
-	testing_output_file(FileName),
-	protocol(FileName),
-	begin_test.
-
+%%%%% Test #1: Produce an explanation for each possible combination of axes %%%%%
+test :- begin_test.
 begin_test :-
 	member(Val1, [coarse, moderate, fine]),
 	member(Val2, [1, 2, 3, 4]),
@@ -900,8 +901,53 @@ begin_test :-
 		prettyprint('representation_granularity: '), prettyprintln(Val1), prettyprint('communication_specificity: '), prettyprintln(Val2), prettyprint('complexity_detail: '), prettyprintln(Val3),
 		initialise_for_reset, generate_explanation, prettyprintln('\n***************\n'),
 	fail.
-begin_test :-
-	noprotocol.
+begin_test :- !.
+
+%%%%% Test #2: Repeatedly produce explanations for a particular combination of axes, and measure time cost %%%%%
+% Parameters: output file name, number of trials to perform, position on explanatory axes.
+% Example usage: time_tests('out.txt', 10000, fine, 4, high).
+time_tests(OutFile, NumberOfRepeats, V1, V2, V3) :-
+	open(OutFile, write, O),
+	close(O), % Create output file
+	prettyprintln('Running time trials...'),
+	unload_file('pretty_printer.pl'),
+	consult('pretty_printer_suppress.pl'), % Suppress normal explanation output (restores it after tests are complete)
+	test_repeat(OutFile, NumberOfRepeats, V1, V2, V3).
+test_repeat(_OutFile, 0, _, _, _) :-
+	!,
+	reset_printer,
+	prettyprintln('...Finished.').
+test_repeat(OutFile, N, V1, V2, V3) :-
+	perform_time_test(OutFile, V1, V2, V3),
+	M is N-1,
+	test_repeat(OutFile, M, V1, V2, V3).
+perform_time_test(F, V1, V2, V3) :-
+	testing_output_file(FileName),
+	protocol(FileName),
+	get_time(Time),
+	retractall(test_time_start(_)),
+	asserta(test_time_start(Time)),
+	begin_test(F, V1, V2, V3).
+begin_test(_, Val1, Val2, Val3) :-
+	set_axis(representation_granularity, Val1), set_axis(communication_specificity, Val2), set_axis(complexity_detail, Val3),
+	prettyprint('representation_granularity: '), prettyprintln(Val1), prettyprint('communication_specificity: '), prettyprintln(Val2), prettyprint('complexity_detail: '), prettyprintln(Val3),
+	initialise_for_reset, generate_explanation, prettyprintln('\n***************\n'),
+	fail.
+begin_test(F, _, _, _) :-
+	get_time(End),
+	test_time_start(Start),
+	noprotocol,
+	Diff is End - Start,
+	open(F, append, Write),
+	write(Write, Diff),
+	write(Write, '\n'),
+	close(Write).
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%% 7: Startup instructions  %%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 beginStartupPrompts :-	
 	prettyprintln('\nExplanation system prototype.'),
@@ -912,9 +958,9 @@ giveUserPrompts :-
 	prettyprintln('Input "1." to initialise default test domain #1, Robot Assistant.'),
 	prettyprintln('Input "2." to initialise default test domain #2, Robot Assistant (fine quantization).'),
 	prettyprintln('Input "3." to initialise default test domain #3, Robot Baker.'),
-	prettyprintln('Otherwise, input the file name of a custom domain to ...'),
+	prettyprintln('Otherwise, input the file name of a custom domain to translate and initialise.'),
 	read(TextInput),
-	(read_domain_file(TextInput) -> give_recommendations ; giveUserPrompts).
+	(read_domain_file(TextInput) -> give_recommendations ; (prettyprintln('\n'), giveUserPrompts)).
 		
 read_domain_file(1) :-
 	retractall(domain_file_saved(_)),
@@ -944,14 +990,30 @@ read_domain_file(_) :-
 	fail.
 
 give_recommendations :-
-	prettyprintln('\n-----------------------------\n'),
-	prettyprintln('Some important commands are:'),
-	prettyprintln('  "test.", which generates and presents all explanations for the domain scenario;'),
-	prettyprintln('  "control_loop.", which allows the user to interact with the simulated agent by asking it for explanations in different ways;'),
-	prettyprintln('  "reset.", which unloads the domain file in preparation to load another;'),
-	prettyprintln('  "tone.", which toggles the explanatory tone from formal to informal or vice versa;'),
-	prettyprintln('  "pov(X).", which sets the explanation\'s point of view to X\'s, or set to \'none\' for third person. Value defaults to rob1 for example domains.'),
-	prettyprintln('\n-----------------------------\n').
+	prettyprintln('\n\n-----------------------------'),
+	prettyprintln('Command list:'),
+	prettyprintln('-----------------------------'),
+	prettyprintln('   test. '),
+	prettyprintln('   time_tests(Out, N, V1, V2, V3). '),
+	prettyprintln('   control_loop. '),
+	prettyprintln('   reset. '),
+	prettyprintln('   tone. '),
+	prettyprintln('   pov(X). '),
+	prettyprintln('-----------------------------'),
+	prettyprintln('   "test." generates and presents all explanations for the domain scenario. The command returns one explanation for each possible combination of axes.'),
+	prettyprintln('   "time_tests(Out, N, V1, V2, V3)." performs N repeated trials of explanation with axis parameters V1, V2, and V3, outputting the time in seconds for each trial to the text file Out.'),
+	prettyprintln('      Example usage:'),
+	prettyprintln('      time_tests(\'outfile.txt\', 10000, coarse, 3, medium).'),
+	prettyprintln('   "control_loop." allows the user to interact with the simulated agent by asking it for explanations in different ways.'),
+	prettyprintln('   "reset." unloads the domain file in preparation to load another.'),
+	prettyprintln('   "tone." toggles the explanatory tone from formal to informal or vice versa.'),
+	prettyprintln('   "pov(X)." sets the explanation\'s point of view to X\'s, or sets it to \'none\' for third person view. This value defaults to rob1 for example domains.'),
+	prettyprintln('-----------------------------\n').
+
+% Restore previously suppressed explanation output	
+reset_printer :-
+	unload_file('pretty_printer_suppress.pl'),
+	consult('pretty_printer.pl').
 
 reset :- reset_system.
 reset_system :-
@@ -964,15 +1026,15 @@ reset_system :-
 	giveUserPrompts.
 
 tone :-
-	formal_tone(false),
-	retractall(formal_tone(false)),
-	assert(formal_tone(true)),
+	use_formal_tone(false),
+	retractall(use_formal_tone(false)),
+	assert(use_formal_tone(true)),
 	prettyprintln('Set tone to formal.'),
 	!.
 tone :-
-	formal_tone(true),
-	retractall(formal_tone(true)),
-	assert(formal_tone(false)),
+	use_formal_tone(true),
+	retractall(use_formal_tone(true)),
+	assert(use_formal_tone(false)),
 	prettyprintln('Set tone to informal.'),
 	!.
 
@@ -985,4 +1047,4 @@ pov(X) :-
 	!.
 
 :- initialization(beginStartupPrompts, program). % Only run after Prolog has finished loading, e.g., following any welcome message.
-
+	
