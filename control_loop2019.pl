@@ -8,8 +8,8 @@
 
 :- dynamic learningMode/1, last_transitions_failed/1, currently_believed_to_hold/1, currentTime/1, 
 	currentTime_unaltered/1, currentGoal/1, obs/3, hpd/2, answer_set_goal/1, expected_effects/3, 
-	user_alerted_interruption/0, representation_granularity/1, communication_specificity/1, 
-	complexity_detail/1, reported/1, join_word/1, use_pov/1, self_described/0, use_formal_tone/1, 
+	user_alerted_interruption/0, representation_abstraction/1, communication_specificity/1, 
+	communication_verbosity/1, reported/1, join_word/1, use_pov/1, self_described/0, use_formal_tone/1, 
 	test_time_start/1.
 
 :- discontiguous describe_outcomes/2.
@@ -116,14 +116,14 @@ change_specificity_from_cues(Text) :-
 change_axes_based_on_cues(_AxisOrGeneral, standard_specificity) :-
 	!.
 change_axes_based_on_cues(general, decrease_specificity) :-
-	decrease_axis(representation_granularity),
+	decrease_axis(representation_abstraction),
 	decrease_axis(communication_specificity),
-	decrease_axis(complexity_detail),
+	decrease_axis(communication_verbosity),
 	!.
 change_axes_based_on_cues(general, increase_specificity) :-
-	increase_axis(representation_granularity),
+	increase_axis(representation_abstraction),
 	increase_axis(communication_specificity),
-	increase_axis(complexity_detail),
+	increase_axis(communication_verbosity),
 	!.
 change_axes_based_on_cues(AxisOrGeneral, decrease_specificity) :-
 	decrease_axis(AxisOrGeneral), !.
@@ -162,23 +162,23 @@ set_preamble_specificity_word(Preamble, AxisOrGeneral, Spec) :-
 % Finally if that fails, fall back on default (no change)
 set_preamble_specificity_word(_Preamble, general, 0).
 
-% Words indicating SPECIFICITY or ABSTRACTNESS
+% communication_specificity: Words indicating SPECIFICITY or ABSTRACTNESS
 preamble_specificity_word(Preamble, FollowWordNetLinks, Ret, Spec) :-
-	contains_a_word(Preamble, FollowWordNetLinks, ["specify", "specific", "concrete", "concreteness", "grounded"]), Ret = communication_specificity, Spec = 1, !.
+	contains_a_word(Preamble, FollowWordNetLinks, ["specify", "specific", "precise", "technical", "grounded"]), Ret = communication_specificity, Spec = 1, !.
 preamble_specificity_word(Preamble, FollowWordNetLinks, Ret, Spec) :-
-	contains_a_word(Preamble, FollowWordNetLinks, ["generic", "general", "abstract", "abstractness", "vague"]), Ret = communication_specificity, Spec = -1, !.
+	contains_a_word(Preamble, FollowWordNetLinks, ["generic", "general", "nonspecific", "imprecise", "nontechnical", "vague"]), Ret = communication_specificity, Spec = -1, !.
 
-% Words indicating REPRESENTATION GRANULARITY (coarse/fine distinction)
+% representation_abstraction: Words indicating ABSTRACTNESS or REPRESENTATION GRANULARITY (coarse/fine distinction)
 preamble_specificity_word(Preamble, FollowWordNetLinks, Ret, Spec) :-
-	contains_a_word(Preamble, FollowWordNetLinks, ["fine", "fineness", "refined", "finegrained", "fine-grained, gritty"]), Ret = representation_granularity, Spec = 1, !. % "granular, granularity"
+	contains_a_word(Preamble, FollowWordNetLinks, ["concrete", "concreteness", "fine", "fineness", "refined", "finegrained", "fine-grained, gritty"]), Ret = representation_abstraction, Spec = 1, !. % "granular, granularity"
 preamble_specificity_word(Preamble, FollowWordNetLinks, Ret, Spec) :-
-	contains_a_word(Preamble, FollowWordNetLinks, ["coarse", "coarseness", "coarsegrained", "coarse-grained"]), Ret = representation_granularity, Spec = -1, !.
+	contains_a_word(Preamble, FollowWordNetLinks, ["abstract", "abstractness", "coarse", "coarseness", "coarsegrained", "coarse-grained"]), Ret = representation_abstraction, Spec = -1, !.
 
-% Words indicating QUANTITY of detail
+% communication_verbosity: Words indicating QUANTITY of detail
 preamble_specificity_word(Preamble, FollowWordNetLinks, Ret, Spec) :-
-	contains_a_word(Preamble, FollowWordNetLinks, ["thorough", "thoroughly", "elaborate", "extended", "extensively", "slowly"]), Ret = complexity_detail, Spec = 1, !.
+	contains_a_word(Preamble, FollowWordNetLinks, ["thorough", "thoroughly", "elaborate", "extended", "verbose", "verbosely", "extensively", "slowly"]), Ret = communication_verbosity, Spec = 1, !.
 preamble_specificity_word(Preamble, FollowWordNetLinks, Ret, Spec) :-
-	contains_a_word(Preamble, FollowWordNetLinks, ["brief", "briefly", "concise", "quick", "quicker", "fast", "faster", "speedily", "rapidly"]), Ret = complexity_detail, Spec = -1, !.
+	contains_a_word(Preamble, FollowWordNetLinks, ["brief", "briefly", "concise", "quick", "quicker", "fast", "faster", "speedily", "rapidly"]), Ret = communication_verbosity, Spec = -1, !.
 
 % (Default or tie: Assume change on all axes)
 preamble_specificity_word(Preamble, FollowWordNetLinks, Ret, Spec) :-
@@ -241,9 +241,9 @@ related_to(WordStr, WordStr). % Each word related to itself - Covers cases where
 %%%%%%%%%%%%%%%%%% Section 4: Axes %%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-representation_granularity(fine). % coarse, moderate, fine
+representation_abstraction(fine). % coarse, moderate, fine
 communication_specificity(3). % 1, 2, 3, 4
-complexity_detail(high). % low, medium, high
+communication_verbosity(high). % low, medium, high
 
 next_higher(coarse, moderate).
 next_higher(moderate, fine).
@@ -342,20 +342,20 @@ print_plan_length :-
 % % %
 
 print_action_sequence :-
-	complexity_detail(high),
+	communication_verbosity(high),
 	!,
 	report_first_action,
 	report_all_actions.
 	
 print_action_sequence :-
-	complexity_detail(medium),
+	communication_verbosity(medium),
 	!,
 	report_first_action,
 	reportActionNumber,
 	report_last_action.
 
 print_action_sequence :-
-	complexity_detail(low),
+	communication_verbosity(low),
 	!,
 	prettyprint('The plan had several steps. '),
 	report_last_action.
@@ -369,11 +369,11 @@ reportActionNumber :-
 	printActionNumberSpecific(C, F).
 
 printActionNumberSpecific(C, _) :-
-	representation_granularity(coarse),
+	representation_abstraction(coarse),
 	prettyprint(C),
 	prettyprint(' coarse actions. ').
 printActionNumberSpecific(C, F) :-
-	(representation_granularity(moderate) ; representation_granularity(fine)),
+	(representation_abstraction(moderate) ; representation_abstraction(fine)),
 	prettyprint(C),
 	prettyprint(' coarse actions comprising '),
 	prettyprint(F),
@@ -382,13 +382,13 @@ printActionNumberSpecific(C, F) :-
 % % %
 
 report_all_actions :-
-	representation_granularity(fine),
+	representation_abstraction(fine),
 	!,
 	findall([ActualAct,T], ( asp(fine(hpd(ActualAct,T))), not(reported(hpd(ActualAct,T))) ), FineActsList),
 	sort(FineActsList, List),
 	recursive_describe_action_fine(List).
 report_all_actions :-
-	(representation_granularity(coarse) ; representation_granularity(moderate)),
+	(representation_abstraction(coarse) ; representation_abstraction(moderate)),
 	asp(coarse(Action)),
 	not(reported(Action)),
 	!,
@@ -409,7 +409,7 @@ recursive_describe_action_fine([A|B]) :-
 	recursive_describe_action_fine(B).
 
 report_first_action :-
-	representation_granularity(fine),
+	representation_abstraction(fine),
 	!,
 	asp(fine(Action)),
 	Action = hpd(ActualAction,T),
@@ -418,7 +418,7 @@ report_first_action :-
 	assert(reported(Action)),
 	!.
 report_first_action :-
-	% Implied: (representation_granularity(coarse) ; representation_granularity(moderate)),
+	% Implied: (representation_abstraction(coarse) ; representation_abstraction(moderate)),
 	asp(coarse(Action)),
 	Action = hpd(ActualAction,T),
 	not(( asp(coarse(hpd(_,T2))), T2 < T )),
@@ -427,7 +427,7 @@ report_first_action :-
 	!.
 	
 report_last_action :-
-	representation_granularity(fine),
+	representation_abstraction(fine),
 	!,
 	asp(fine(Action)),
 	Action = hpd(ActualAction,T),
@@ -436,7 +436,7 @@ report_last_action :-
 	assert(reported(Action)),
 	!.
 report_last_action :-
-	% Implied: (representation_granularity(coarse) ; representation_granularity(moderate)),
+	% Implied: (representation_abstraction(coarse) ; representation_abstraction(moderate)),
 	asp(coarse(Action)),
 	Action = hpd(ActualAction,T),
 	not(( asp(coarse(hpd(_,T2))), T2 > T )),
@@ -499,7 +499,7 @@ getCorrectArg(Symbol, Term, TypeList, Value) :-
 % 2. Else if the overall goal is achieved, say the coarse action achieved it.
 % 3. Else say the coarse action produced a failure state.
 describe_outcomes(coarse(Action), Time) :-
-	complexity_detail(medium),
+	communication_verbosity(medium),
 	!,
 	get_nonrefined_end_time(Action, Time, EndTime),
 	describe_outcomes_coarse_continue('This action ', Time, EndTime).
@@ -511,7 +511,7 @@ describe_outcomes(coarse(Action), Time) :-
 % 3. Else if the overall goal is achieved, say the outcomes achieved it.
 % 4. Else say the outcomes produced a failure state.
 describe_outcomes(coarse(Action), Time) :-
-	complexity_detail(high),
+	communication_verbosity(high),
 	communication_specificity(1),
 	!,
 	get_nonrefined_end_time(Action, Time, EndTime),
@@ -520,14 +520,14 @@ describe_outcomes(coarse(Action), Time) :-
 	print_effect_count(Count),
 	describe_outcomes_coarse_continue('These effects ', Time, EndTime).
 describe_outcomes(coarse(Action), Time) :-
-	complexity_detail(high),
+	communication_verbosity(high),
 	get_nonrefined_end_time(Action, Time, EndTime),
 	count_nonrefined_fluent_outcomes(Time, EndTime, 0), % No discernible effects
 	!,
 	prettyprint('This resulted in no discernible effects. '),
 	describe_outcomes_coarse_continue('However, this ', Time, EndTime).
 describe_outcomes(coarse(Action), Time) :-
-	complexity_detail(high),
+	communication_verbosity(high),
 	!,
 	get_nonrefined_end_time(Action, Time, EndTime),
 	prettyprint('This resulted in effects: '),
@@ -570,7 +570,7 @@ get_nonrefined_end_time(Action, T, T2) :-
 print_nonrefined_fluent_outcomes(T, TFinal) :-
 	T2 is TFinal +1,
 	% Find all coarse fluents whose truth value reversed between timesteps T and T2.
-	% (for now, find all fluents, regardless of representation_granularity - TODO, extend...
+	% (for now, find all fluents, regardless of representation_abstraction - TODO, extend...
 	%  note no assumption domain distinguishes between specifically coarse and fine fluents in machine-readable way)
 	% Recursively print this list with '; ' appended, finishing in '. '
 	findall(not(X), (asp(holds(X, T)), not_holds_either_way(X, T2)), ChangeList1),
@@ -611,7 +611,7 @@ not_holds_either_way(X, T) :-
 % 4. Else if the overall goal is achieved, say X achieved it.
 % 5. Else say X produced a failure state.
 describe_outcomes(fine(_Action), FineTime) :-
-	complexity_detail(medium),
+	communication_verbosity(medium),
 	link(FineActionList, CoarseAction, CoarseActionTime),
 	last(FineActionList, FineTime),
 	!,
@@ -633,7 +633,7 @@ describe_outcomes(fine(_Action), FineTime) :-
 %    b) Else if the goal was not achieved, say the refined outcomes produced a failure state immediately.
 %    c) Else error.
 describe_outcomes(fine(_Action), Time) :-
-	complexity_detail(high),
+	communication_verbosity(high),
 	communication_specificity(1),
 	!,
 	prettyprint('This resulted in '),
@@ -641,14 +641,14 @@ describe_outcomes(fine(_Action), Time) :-
 	print_effect_count(Count),
 	describe_fine_extensive(Time).
 describe_outcomes(fine(_Action), Time) :-
-	complexity_detail(high),
+	communication_verbosity(high),
 	count_nonrefined_fluent_outcomes(Time, Time, 0), % No discernible effects
 	!,
 	prettyprint('This resulted in no discernible effects. However... '),
 	describe_fine_extensive(Time).
 	
 describe_outcomes(fine(_Action), Time) :-
-	complexity_detail(high),
+	communication_verbosity(high),
 	!,
 	prettyprint('This resulted in effects: '),
 	print_refined_fluent_outcomes(Time),
@@ -745,14 +745,14 @@ print_obj_method(DomainSymbol) :-
 % Specificity 2...
 print_obj_method(DomainSymbol) :-
 	communication_specificity(2),
-	complexity_detail(low),
+	communication_verbosity(low),
 	!,
 	prettyprint('a '),
 	specific_sort(DomainSymbol, Sort),
 	prettyprint(Sort).
 print_obj_method(DomainSymbol) :-
 	communication_specificity(2),
-	complexity_detail(medium),
+	communication_verbosity(medium),
 	!,
 	prettyprint('a'),
 	specific_sort(DomainSymbol, Sort),
@@ -760,7 +760,7 @@ print_obj_method(DomainSymbol) :-
 	prettyprint(Sort).
 print_obj_method(DomainSymbol) :-
 	communication_specificity(2),
-	complexity_detail(high),
+	communication_verbosity(high),
 	!,
 	prettyprint('a'),
 	specific_sort(DomainSymbol, Sort),
@@ -769,7 +769,7 @@ print_obj_method(DomainSymbol) :-
 % Specificity 3...
 print_obj_method(DomainSymbol) :-
 	communication_specificity(3),
-	(complexity_detail(low) ; complexity_detail(medium)),
+	(communication_verbosity(low) ; communication_verbosity(medium)),
 	!,
 	prettyprint('the'),
 	specific_sort(DomainSymbol, Sort),
@@ -777,7 +777,7 @@ print_obj_method(DomainSymbol) :-
 	prettyprint(Sort).
 print_obj_method(DomainSymbol) :-
 	communication_specificity(3),
-	complexity_detail(high),
+	communication_verbosity(high),
 	!,
 	prettyprint('the'),
 	specific_sort(DomainSymbol, Sort),
@@ -786,12 +786,12 @@ print_obj_method(DomainSymbol) :-
 %% Specificity 4...
 print_obj_method(DomainSymbol) :-
 	communication_specificity(4),
-	complexity_detail(low),
+	communication_verbosity(low),
 	!,
 	prettyprint(DomainSymbol).
 print_obj_method(DomainSymbol) :-
 	communication_specificity(4),
-	complexity_detail(medium),
+	communication_verbosity(medium),
 	!,
 	prettyprint('the '),
 	specific_sort(DomainSymbol, Sort),
@@ -801,7 +801,7 @@ print_obj_method(DomainSymbol) :-
 	prettyprint('"').
 print_obj_method(DomainSymbol) :-
 	communication_specificity(4),
-	complexity_detail(high),
+	communication_verbosity(high),
 	!,
 	prettyprint('the'),
 	specific_sort(DomainSymbol, Sort),
@@ -897,8 +897,8 @@ begin_test :-
 	member(Val1, [coarse, moderate, fine]),
 	member(Val2, [1, 2, 3, 4]),
 	member(Val3, [low, medium, high]),
-		set_axis(representation_granularity, Val1), set_axis(communication_specificity, Val2), set_axis(complexity_detail, Val3),
-		prettyprint('representation_granularity: '), prettyprintln(Val1), prettyprint('communication_specificity: '), prettyprintln(Val2), prettyprint('complexity_detail: '), prettyprintln(Val3),
+		set_axis(representation_abstraction, Val1), set_axis(communication_specificity, Val2), set_axis(communication_verbosity, Val3),
+		prettyprint('representation_abstraction: '), prettyprintln(Val1), prettyprint('communication_specificity: '), prettyprintln(Val2), prettyprint('communication_verbosity: '), prettyprintln(Val3),
 		initialise_for_reset, generate_explanation, prettyprintln('\n***************\n'),
 	fail.
 begin_test :- !.
@@ -906,6 +906,9 @@ begin_test :- !.
 %%%%% Test #2: Repeatedly produce explanations for a particular combination of axes, and measure time cost %%%%%
 % Parameters: output file name, number of trials to perform, position on explanatory axes.
 % Example usage: time_tests('out.txt', 10000, fine, 4, high).
+%   representation_abstraction axis: {coarse, moderate, fine}.
+%   communication_specificity axis: {1, 2, 3, 4}.
+%   communication_verbosity axis: {low, medium, high}.
 time_tests(OutFile, NumberOfRepeats, V1, V2, V3) :-
 	open(OutFile, write, O),
 	close(O), % Create output file
@@ -929,8 +932,8 @@ perform_time_test(F, V1, V2, V3) :-
 	asserta(test_time_start(Time)),
 	begin_test(F, V1, V2, V3).
 begin_test(_, Val1, Val2, Val3) :-
-	set_axis(representation_granularity, Val1), set_axis(communication_specificity, Val2), set_axis(complexity_detail, Val3),
-	prettyprint('representation_granularity: '), prettyprintln(Val1), prettyprint('communication_specificity: '), prettyprintln(Val2), prettyprint('complexity_detail: '), prettyprintln(Val3),
+	set_axis(representation_abstraction, Val1), set_axis(communication_specificity, Val2), set_axis(communication_verbosity, Val3),
+	prettyprint('representation_abstraction: '), prettyprintln(Val1), prettyprint('communication_specificity: '), prettyprintln(Val2), prettyprint('communication_verbosity: '), prettyprintln(Val3),
 	initialise_for_reset, generate_explanation, prettyprintln('\n***************\n'),
 	fail.
 begin_test(F, _, _, _) :-
@@ -1002,6 +1005,9 @@ give_recommendations :-
 	prettyprintln('-----------------------------'),
 	prettyprintln('   "test." generates and presents all explanations for the domain scenario. The command returns one explanation for each possible combination of axes.'),
 	prettyprintln('   "time_tests(Out, N, V1, V2, V3)." performs N repeated trials of explanation with axis parameters V1, V2, and V3, outputting the time in seconds for each trial to the text file Out.'),
+	prettyprintln('   "V1 is the representation_abstraction axis.'),
+	prettyprintln('   "V2 is the communication_specificity axis.'),
+	prettyprintln('   "V3 is the communication_verbosity axis.'),
 	prettyprintln('      Example usage:'),
 	prettyprintln('      time_tests(\'outfile.txt\', 10000, coarse, 3, medium).'),
 	prettyprintln('   "control_loop." allows the user to interact with the simulated agent by asking it for explanations in different ways.'),
