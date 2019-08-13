@@ -2,15 +2,13 @@
 %%%%%%%%%%%%%%% Section 1: Parameters %%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Consult formatting and WordNet libraries
+% Consult formatting library 'pretty_printer'. Load a different formatting library to change the style
 :- [pretty_printer].
+% Consult language library 'resources' to include WordNet and verb lemma resources
 :- [resources].
 
-:- dynamic learningMode/1, last_transitions_failed/1, currently_believed_to_hold/1, currentTime/1, 
-	currentTime_unaltered/1, currentGoal/1, obs/3, hpd/2, answer_set_goal/1, expected_effects/3, 
-	user_alerted_interruption/0, representation_abstraction/1, communication_specificity/1, 
-	communication_verbosity/1, reported/1, join_word/1, use_pov/1, self_described/0, use_formal_tone/1, 
-	test_time_start/1.
+:- dynamic representation_abstraction/1, communication_specificity/1, communication_verbosity/1,
+           reported/1, join_word/1, use_pov/1, self_described/0, use_formal_tone/1, test_time_start/1.
 
 :- discontiguous describe_outcomes/2.
 
