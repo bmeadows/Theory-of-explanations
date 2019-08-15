@@ -1,8 +1,23 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%% Index %%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%%%%%%%%%%%%%%% Section 1: Parameters %%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%% Section 2: Control %%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%% Section 3: Cue parsing %%%%%%%%%%%%%%
+%%%%%%%%%%%%%%% Section 4: Axes %%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%% Section 5: Explanation generation %%%
+%%%%%%%%%%%%%%% Section 6: Language generation %%%%%%
+%%%%%%%%%%%%%%% Section 7: Test commands %%%%%%%%%%%%
+%%%%%%%%%%%%%%% Section 8: Startup instructions  %%%%
+%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%% Section 1: Parameters %%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Consult formatting library 'pretty_printer'. Load a different formatting library to change the style
+% Consult formatting library 'pretty_printer'. Load a different formatting library (e.g., 'pretty_printer_suppress') to change the style
 :- [pretty_printer].
 % Consult language library 'resources' to include WordNet and verb lemma resources
 :- [resources].
@@ -12,6 +27,7 @@
 
 :- discontiguous describe_outcomes/2.
 
+% If set to true, the system does not use personal pronouns in its responses
 use_formal_tone(false).
 
 
@@ -26,7 +42,7 @@ control_loop :-
 leave_loop :-
 	prettyprintln('Request not understood or no explanation requested. Leaving control loop.').
 
-% Overwrite to translate a custom domain
+% Overwrite to translate a user-defined domain from ASP to explanation system symbols
 read_ASP_program_and_output_to_predicates :-
 	read_ASP_program_and_translate_to_predicates,
 	read_ASP_output_and_translate_to_predicates.
@@ -46,6 +62,7 @@ get_user_explanation_request :-
 	process_user_input_text(Input).
 
 get_text(Input) :-
+	prettyprintstars,
 	prettyprintln('Please provide instruction (within single quotes followed by period): '),
 	read(Input),
 	prettyprintln(' '),
@@ -54,6 +71,7 @@ get_text(Input) :-
 	Input \= '\n'.
 
 get_text_feedback(Input) :-
+	prettyprintstars,
 	prettyprintln('Explanation finished. Please provide feedback (within single quotes followed by period): '),
 	read(Input),
 	prettyprintln(' '),
@@ -89,7 +107,7 @@ split_string_into_three_at_first_instance_of_a_word(Input, WordList, Output1, Ou
 	Output2 = Token,
 	!.
 
-% Replace the following clauses appropriately to encode other domains
+% Replace the following clauses in order to encode other domains
 read_ASP_program_and_translate_to_predicates :-
 	true.
 read_ASP_output_and_translate_to_predicates :-
@@ -147,13 +165,13 @@ establish_cues(_, general, standard_specificity).
 
 % Determine explanation axes to modulate
 
-% 1 is specific, -1 is generic
+% '1' implies one direction on each axis (specific), '-1' the other direction (generic)
 
 % First, try to find a match using only exact matches, no WordNet ties
 set_preamble_specificity_word(Preamble, AxisOrGeneral, Spec) :-
 	preamble_specificity_word(Preamble, false, AxisOrGeneral, Spec),
 	!.
-% Only if that fails, try to find a match using WordNet ties
+% If that fails, try to find a match using WordNet ties
 set_preamble_specificity_word(Preamble, AxisOrGeneral, Spec) :-
 	preamble_specificity_word(Preamble, true, AxisOrGeneral, Spec),
 	!.
@@ -187,7 +205,7 @@ preamble_specificity_word(Preamble, FollowWordNetLinks, Ret, Spec) :-
 % % % % % % % % % % % % % % % % % % % %
 % % % % % % % % % % % % % % % % % % % %
 
-% Determine direction of modulation
+% Determine the direction of the modulation
 
 % Ambiguity: Signal magnitude increase
 preamble_direction_word(Preamble, 1) :-
@@ -207,7 +225,8 @@ preamble_direction_word(_Preamble, 1).
 preamble_negation_words(Preamble, Negs) :-
 	find_words(Preamble, ["absent", "without", "sans ", "not "], Negs).
 
-find_words(Text, List, Negs) :- % Returns each instance of a target word found as a substring
+% Returns each instance of a target word found as a substring
+find_words(Text, List, Negs) :-
 	findall([A,B,C,L], (member(L, List), sub_string(Text, A, B, C, L)), Negs).
 
 % True in the presence of a target word or a synonym for one
@@ -239,10 +258,11 @@ related_to(WordStr, WordStr). % Each word related to itself - Covers cases where
 %%%%%%%%%%%%%%%%%% Section 4: Axes %%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-representation_abstraction(fine). % coarse, moderate, fine
-communication_specificity(3). % 1, 2, 3, 4
-communication_verbosity(high). % low, medium, high
+representation_abstraction(fine). % {coarse, moderate, fine}
+communication_specificity(3).     % {1, 2, 3, 4}
+communication_verbosity(high).    % {low, medium, high}
 
+% Helper relations
 next_higher(coarse, moderate).
 next_higher(moderate, fine).
 next_higher(low, medium).
@@ -251,6 +271,7 @@ next_higher(1,2).
 next_higher(2,3).
 next_higher(3,4).
 
+% Set the position on an axis to a provided value
 set_axis(Axis, Value) :-
 	functor(Term, Axis, 1),
 	Term,
@@ -258,7 +279,8 @@ set_axis(Axis, Value) :-
 	functor(Term2, Axis, 1),
 	arg(1, Term2, Value),
 	assert(Term2).
-	
+
+% Increment the position on an axis
 increase_axis(Axis) :- 
 	functor(Term, Axis, 1),
 	Term,
@@ -272,6 +294,7 @@ increase_axis(Axis) :-
 increase_axis(Axis) :-
 	prettyprint('Unchanging (increase): '),
 	prettyprintln(Axis).
+% Decrement the position on an axis
 decrease_axis(Axis) :- 
 	functor(Term, Axis, 1),
 	Term,
@@ -286,11 +309,12 @@ decrease_axis(Axis) :-
 	prettyprint('Unchanging (decrease): '),
 	prettyprintln(Axis).
 
-	
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%% Section 5: Explanation generation %%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Overall function
 generate_explanation :-
 	goal_was_achieved,
 	!,
@@ -300,7 +324,6 @@ generate_explanation :-
 	prettyprintln(' time steps.'),
 	print_action_sequence,
 	prettyprintln('').
-
 generate_explanation :-
 	!,
 	print_goal_time_prefix,
@@ -320,7 +343,8 @@ print_goal_time_prefix :-
 	earliest_time(T),
 	prettyprint(T).
 
-% % %
+% % % % % % % % % % % % % % % % % %
+% % % % % % % % % % % % % % % % % %
 
 earliest_time(T) :-
 	asp(holds(_,T)),
@@ -337,7 +361,8 @@ print_plan_length :-
 	T is TEnd - TStart +1,
 	prettyprint(T).
 
-% % %
+% % % % % % % % % % % % % % % % % %
+% % % % % % % % % % % % % % % % % %
 
 print_action_sequence :-
 	communication_verbosity(high),
@@ -376,8 +401,9 @@ printActionNumberSpecific(C, F) :-
 	prettyprint(' coarse actions comprising '),
 	prettyprint(F),
 	prettyprint(' fine actions. ').
-	
-% % %
+
+% % % % % % % % % % % % % % % % % %
+% % % % % % % % % % % % % % % % % %
 
 report_all_actions :-
 	representation_abstraction(fine),
@@ -458,6 +484,9 @@ change_join_word('Then, ') :-
 change_join_word('After this, ') :-
 	retractall(join_word(_)),
 	asserta(join_word('Next, ')).
+
+% % % % % % % % % % % % % % % % % %
+% % % % % % % % % % % % % % % % % %
 
 %%% Functions for giving a description of one action
 
@@ -556,7 +585,8 @@ print_effect_count(Count) :-
 	prettyprint(Count),
 	prettyprint(' effects. ').
 
-%%%%%%%%%%%%%%%%%%%%%%
+% % % % % % % % % % % % % % % % % %
+% % % % % % % % % % % % % % % % % %
 
 % Coarse action occurred "at" T, i.e., that was the start time.
 % Find the end time T2 from the final related fine action (+1).
@@ -599,7 +629,12 @@ not_holds_either_way(X, T) :-
 	asp(not_holds(X, T)),
 	!.
 
-%%%%%%%%%%%%%%%%%%%%%%
+% % % % % % % % % % % % % % % % % %
+% % % % % % % % % % % % % % % % % %
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%% Section 6: Language generation %%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Descriptor function
 % THIRD VARIATION: Fine representation granularity + medium outcome detail.
@@ -710,8 +745,8 @@ count_refined_fluent_outcomes(T, Length) :-
 % % % % % % % % % % % % % % % % % %
 % % % % % % % % % % % % % % % % % %
 
-% For these explanations, can assume the first object to be printed is the agent speaking
-% TODO - make this more robust for when this will not be the case
+% For these explanations, assume the first object to be printed is the agent speaking
+% Replace these functions if this is not the case
 print_obj(DomainSymbol) :-
 	use_pov(none),
 	!,
@@ -823,8 +858,6 @@ less_specific_sort(DomainSymbol, GeneralSort) :-
 less_specific_sort(DomainSymbol, GeneralSort) :-
 	specific_sort(DomainSymbol, GeneralSort).
 
-%
-
 domain_symbol_att_values(DomainSymbol, ReturnList) :-
 	findall(	Val,
 				(   asp(predicate(Term)), functor(Term, _Pred, 2), arg(1, Term, DomainSymbol), arg(2, Term, Val)   ),
@@ -885,9 +918,9 @@ has_all_att_vals(OtherSymbol, [A|B]) :-
 	has_all_att_vals(OtherSymbol, B).
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%% 6: Test commands %%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%% Section 7: Test commands %%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%% Test #1: Produce an explanation for each possible combination of axes %%%%%
 test :- begin_test.
@@ -945,10 +978,9 @@ begin_test(F, _, _, _) :-
 	close(Write).
 
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%% 7: Startup instructions  %%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%% Section 8: Startup instructions  %%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 beginStartupPrompts :-	
 	prettyprintln('\nExplanation system prototype.'),
